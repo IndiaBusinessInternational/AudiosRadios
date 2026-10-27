@@ -29,7 +29,7 @@
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="icon" href="icons/favicon-64.png" sizes="64x64">
 <script>try{var t=localStorage.getItem("iar:theme");if(t)document.documentElement.setAttribute("data-theme",t);if(localStorage.getItem("iar:lite")==="1")document.documentElement.className="lite-boot";}catch(e){}</script>
-<link rel="stylesheet" href="app.css?v=1.3">
+<link rel="stylesheet" href="app.css?v=1.4">
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="preconnect" href="https://de1.api.radio-browser.info" crossorigin>
 </head>
@@ -68,8 +68,9 @@
 
 <div id="app">
   <header class="topbar" id="topbar">
-    <span class="badge" id="versionBadge" title="App version">v1.3</span>
+    <span class="badge" id="versionBadge" title="App version">v1.4</span>
     <div class="brand"><svg aria-hidden="true"><use href="#i-mark"/></svg><b>IBI Audios &amp; Radios</b></div>
+    <button type="button" class="top-share" id="shareTop" aria-label="Share this app" title="Share this app"><svg class="i" aria-hidden="true"><use href="#i-share"/></svg></button>
     <button type="button" class="top-btn" id="installTop" hidden>Install</button>
     <button type="button" class="switch" id="themeTop" role="switch" aria-checked="true" aria-label="Dark theme"><span class="track"><span class="knob"></span></span><span class="lab">Dark</span></button>
   </header>
@@ -126,6 +127,6 @@
 <input type="file" id="restoreFile" accept="application/json,.json" hidden>
 <audio id="audio" preload="none"></audio>
 <script src="https://cdn.jsdelivr.net/npm/globe.gl@2.46.2/dist/globe.gl.min.js" defer></script>
-<script src="app.js?v=1.3" defer></script>
+<script src="app.js?v=1.4" defer></script>
 </body>
 </html>

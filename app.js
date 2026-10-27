@@ -1,11 +1,11 @@
-/* IBI Audios & Radios v1.3 — India Business International.
+/* IBI Audios & Radios v1.4 — India Business International.
  * Live radio on a 3D globe. Stations: Radio Browser (radio-browser.info, open directory, no key), placed on
  * cities nightly by scripts/build_stations.py. Globe: globe.gl. No API key, no server, no tracking.
  * Everything the listener keeps (favourites, history, hidden stations, settings, alarm) stays on the device,
  * with Backup / Restore in Settings. */
 (() => {
   'use strict';
-  const VERSION = 'v1.3';
+  const VERSION = 'v1.4';
   const DEFAULT_STATION = '9e9b8485-72ff-4916-9197-59da819c03db';   // Radio Suno Malayalam 91.7 FM, Kochi (Founder, 27 Oct 2026)
   const DEFAULT_PLACE_NAME = 'Kochi';
   const API_HOSTS = ['de1.api.radio-browser.info', 'de2.api.radio-browser.info', 'fi1.api.radio-browser.info', 'nl1.api.radio-browser.info', 'at1.api.radio-browser.info'];
@@ -542,6 +542,7 @@
       + row('backup', `${icon('dl')} Download backup`, `${S.favs.length} favourites, ${S.history.length} recently played, settings`)
       + row('restore', `${icon('ul')} Restore from backup`, 'Adds the backup to what is here; nothing is deleted')
       + row('unhide', `${icon('hide')} Hidden stations`, S.hidden.length ? `${S.hidden.length} hidden · tap to show them all again` : 'None hidden', S.hidden.length ? '<span class="chip">Show all</span>' : '')
+      + row('share-app', `${icon('share')} Share this app`, 'Send IBI Audios &amp; Radios to family and friends: WhatsApp, Facebook, X, Telegram, email or a link')
       + (isInstalled() ? '' : row('install', 'Install app', isIOS() ? 'iPhone: Share → Add to Home Screen' : 'Open it from your home screen like any app'))
       + (isPhone() ? '' : sec('Keyboard shortcuts') + '<div class="kbd"><kbd>Space</kbd><span>Play / pause</span><kbd>← →</kbd><span>Previous / next station</span><kbd>↑ ↓</kbd><span>Volume</span><kbd>M</kbd><span>Mute</span><kbd>F</kbd><span>Favourite</span><kbd>R</kbd><span>Surprise me</span><kbd>/</kbd><span>Search</span><kbd>Esc</kbd><span>Close</span></div>')
       + sec('About')
@@ -867,21 +868,31 @@
     return list;
   }
 
-  // share
+  // share: one sheet for a station link and for the app link (v1.4)
   function share(s) {
     if (!s) return;
-    const url = linkOf(s);
-    const text = `Listen to ${s.name} (${whereOf(s)}) live on IBI Audios & Radios`;
-    const el = openLayer(`<div class="sheet">${sheetHead('Share ' + s.name)}<div class="sheet-b"><div class="opts">
-      <a class="act-b" href="https://wa.me/?text=${encodeURIComponent(text + ': ' + url)}" target="_blank" rel="noopener" style="text-decoration:none;color:inherit" data-act="close-after">💬 WhatsApp</a>
+    shareSheet({ title: 'Share ' + s.name, name: s.name, url: linkOf(s), text: `Listen to ${s.name} (${whereOf(s)}) live on IBI Audios & Radios`, copied: 'Link copied. It opens this station directly.' });
+  }
+  function shareApp() {
+    shareSheet({ title: 'Share IBI Audios & Radios', name: 'IBI Audios & Radios', url: `${location.origin}/`, text: 'IBI Audios & Radios: spin the globe and listen to 50,000 live radio stations from every country, free', copied: 'App link copied. Paste it anywhere to share.' });
+  }
+  function shareSheet({ title, name, url, text, copied }) {
+    const q = encodeURIComponent, both = q(text + ': ' + url);
+    const ext = (href, label) => `<a class="act-b" href="${href}" target="_blank" rel="noopener" style="text-decoration:none;color:inherit" data-act="close-after">${label}</a>`;
+    const el = openLayer(`<div class="sheet">${sheetHead(title)}<div class="sheet-b"><div class="opts">
+      ${ext('https://wa.me/?text=' + both, '💬 WhatsApp')}
+      ${ext('https://www.facebook.com/sharer/sharer.php?u=' + q(url), 'ⓕ Facebook')}
+      ${ext('https://x.com/intent/post?text=' + q(text) + '&url=' + q(url), '𝕏 X')}
+      ${ext('https://t.me/share/url?url=' + q(url) + '&text=' + q(text), '✈ Telegram')}
+      ${ext('mailto:?subject=' + q(name) + '&body=' + both, '✉ Email')}
       <button type="button" class="act-b" id="copyLink">🔗 Copy link</button>
       ${navigator.share ? '<button type="button" class="act-b" id="moreShare">⋯ More apps</button>' : ''}
     </div><div class="note" style="overflow-wrap:anywhere">${esc(url)}</div></div></div>`, { modal: true });
     el.querySelector('#copyLink').onclick = async () => {
-      try { await navigator.clipboard.writeText(url); closeLayer(); toast('Link copied. It opens this station directly.'); } catch (e) { toast('Copy did not work here. Press and hold the link to copy it.'); }
+      try { await navigator.clipboard.writeText(url); closeLayer(); toast(copied); } catch (e) { toast('Copy did not work here. Press and hold the link to copy it.'); }
     };
     const more = el.querySelector('#moreShare');
-    if (more) more.onclick = () => { navigator.share({ title: s.name, text, url }).then(() => closeLayer()).catch(() => {}); };
+    if (more) more.onclick = () => { navigator.share({ title: name, text, url }).then(() => closeLayer()).catch(() => {}); };
   }
 
   // ---------- sleep timer ----------
@@ -1140,6 +1151,7 @@
       case 'close': closeLayer(); break;
       case 'close-after': setTimeout(closeLayer, 300); break;
       case 'share': share(S.current); break;
+      case 'share-app': shareApp(); break;
       case 'prev': prev(); break;
       case 'next': next(); break;
       case 'toggle': togglePlay(); break;
@@ -1184,6 +1196,7 @@
 
   $('#themeTop').addEventListener('click', toggleTheme);
   $('#installTop').addEventListener('click', doInstall);
+  $('#shareTop').addEventListener('click', shareApp);
   $('#installBannerBtn').addEventListener('click', doInstall);
   $('#installBannerX').addEventListener('click', () => { store.set('installDismissed', Date.now()); $('#installBanner').hidden = true; });
   document.querySelectorAll('.tab').forEach((b) => b.addEventListener('click', () => setTab(b.dataset.tab)));

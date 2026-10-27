@@ -1,4 +1,4 @@
-/* IBI Audios & Radios v1.3 — edge to edge on every screen (no outer gutter, 10px inner padding).
+/* IBI Audios & Radios v1.4 — edge to edge on every screen (no outer gutter, 10px inner padding).
    Phones (< 1000px): full-screen globe with a bottom sheet. Wide screens: two columns, panel | globe. */
 :root {
   --bg: #04070c; --sky1: #0b1830; --sky2: #02040a;
@@ -57,6 +57,8 @@ svg.i.fill { fill: currentColor; stroke: none; }
 .brand svg { width: 26px; height: 26px; flex: 0 0 auto; }
 .brand b { font-size: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .top-btn { height: 36px; padding: 0 12px; border-radius: 18px; background: var(--accent); color: var(--on-accent); font-weight: 700; font-size: 14px; flex: 0 0 auto; }
+.top-share { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; flex: 0 0 auto; color: inherit; }
+.top-share:hover { background: rgba(255, 255, 255, .14); }
 .switch { display: inline-flex; align-items: center; gap: 6px; flex: 0 0 auto; min-height: 40px; font-size: 13px; }
 .switch .track { width: 40px; height: 22px; border-radius: 11px; background: rgba(255,255,255,.3); position: relative; transition: background .2s; }
 .switch .knob { position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: transform .2s; }
