@@ -1,11 +1,11 @@
-/* IBI Audios & Radios v1.0 — India Business International.
+/* IBI Audios & Radios v1.1 — India Business International.
  * Live radio on a 3D globe. Stations: Radio Browser (radio-browser.info, open directory, no key), placed on
  * cities nightly by scripts/build_stations.py. Globe: globe.gl. No API key, no server, no tracking.
  * Everything the listener keeps (favourites, history, hidden stations, settings, alarm) stays on the device,
  * with Backup / Restore in Settings. */
 (() => {
   'use strict';
-  const VERSION = 'v1.0';
+  const VERSION = 'v1.1';
   const DEFAULT_STATION = '9e9b8485-72ff-4916-9197-59da819c03db';   // Radio Suno Malayalam 91.7 FM, Kochi (Founder, 27 Oct 2026)
   const DEFAULT_PLACE_NAME = 'Kochi';
   const API_HOSTS = ['de1.api.radio-browser.info', 'de2.api.radio-browser.info', 'fi1.api.radio-browser.info', 'nl1.api.radio-browser.info', 'at1.api.radio-browser.info'];
@@ -563,6 +563,7 @@
   function startStream(s) {
     const tok = ++playToken;
     stopStream();
+    lastT = 0;
     let url = s.url;
     S.upgraded = false;
     if (!playsHere(s)) { url = 'https:' + url.slice(url.indexOf(':') + 1); S.upgraded = true; }
@@ -611,6 +612,11 @@
   audio.addEventListener('pause', () => { if (S.status === 'live' || S.status === 'buffering') setStatus('paused'); });
   audio.addEventListener('error', () => { if (audio.getAttribute('src') && !hls) fail(playToken); });
   audio.addEventListener('stalled', () => { if (S.status === 'live') setStatus('buffering'); });
+  let lastT = 0;   // some streams resume after a stall without a new "playing" event: moving time means live
+  audio.addEventListener('timeupdate', () => {
+    if ((S.status === 'buffering' || S.status === 'connecting') && !audio.paused && audio.currentTime > lastT + 0.4) { clearTimeout(stallTimer); setStatus('live'); }
+    lastT = audio.currentTime;
+  });
 
   function togglePlay() {
     const s = S.current;
