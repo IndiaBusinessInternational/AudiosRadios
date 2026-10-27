@@ -1,9 +1,9 @@
-/* IBI Audios & Radios v1.1 — service worker. Makes the app installable and opens it offline.
+/* IBI Audios & Radios v1.2 — service worker. Makes the app installable and opens it offline.
  * Network-first for this site's own files (always the live version online; the cache only when offline).
  * Radio streams, the station directory and CDNs are never touched. Bump CACHE with every release. */
-const CACHE = 'ibi-radios-v1-1';
+const CACHE = 'ibi-radios-v1-2';
 const PREFIX = 'ibi-radios-';
-const SHELL = ['./', 'index.html', 'app.css?v=1.1', 'app.js?v=1.1', 'manifest.json', 'icons/icon-192.png', 'img/earth-2k.jpg', 'img/earth-bump.png', 'data/places.json'];
+const SHELL = ['./', 'index.html', 'app.css?v=1.2', 'app.js?v=1.2', 'manifest.json', 'icons/icon-192.png', 'img/earth-2k.jpg', 'img/earth-bump.png', 'data/places.json'];
 self.addEventListener('install', (e) => { self.skipWaiting(); e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL.map((u) => new Request(u, { cache: 'reload' })))).catch(() => {})); });
 self.addEventListener('activate', (e) => { e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== CACHE && k.startsWith(PREFIX)).map((k) => caches.delete(k)))).then(() => self.clients.claim())); });
 self.addEventListener('fetch', (e) => {
