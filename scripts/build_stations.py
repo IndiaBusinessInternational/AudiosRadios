@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""IBI Audios & Radios — nightly station-map builder (v1.2).
+"""IBI Audios & Radios — nightly station-map builder (v1.3).
 
 Downloads every working station from the free Radio Browser directory (radio-browser.info,
 community-run, no key) and places each one on a city from the free GeoNames city list
@@ -259,7 +259,7 @@ def main():
         place_rows.append([pid, c["name"], c["cc"], admin_label.get((c["cc"], c["a1"]), ""), round(c["lat"], 3), round(c["lng"], 3),
                            tz_ix[c["tz"]], places[pid]["n"], sorted(place_langs[pid])])
     meta = {
-        "builder": "v1.2", "built": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "builder": "v1.3", "built": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "stations": sum(c[2] for c in countries), "places": len(place_rows),
         "how": dict(how),
         "placeFields": ["id", "name", "cc", "state", "lat", "lng", "tz", "count", "langs"],

@@ -1,4 +1,4 @@
-/* IBI Audios & Radios v1.2 — edge to edge on every screen (no outer gutter, 10px inner padding).
+/* IBI Audios & Radios v1.3 — edge to edge on every screen (no outer gutter, 10px inner padding).
    Phones (< 1000px): full-screen globe with a bottom sheet. Wide screens: two columns, panel | globe. */
 :root {
   --bg: #04070c; --sky1: #0b1830; --sky2: #02040a;

@@ -1,11 +1,11 @@
-/* IBI Audios & Radios v1.2 — India Business International.
+/* IBI Audios & Radios v1.3 — India Business International.
  * Live radio on a 3D globe. Stations: Radio Browser (radio-browser.info, open directory, no key), placed on
  * cities nightly by scripts/build_stations.py. Globe: globe.gl. No API key, no server, no tracking.
  * Everything the listener keeps (favourites, history, hidden stations, settings, alarm) stays on the device,
  * with Backup / Restore in Settings. */
 (() => {
   'use strict';
-  const VERSION = 'v1.2';
+  const VERSION = 'v1.3';
   const DEFAULT_STATION = '9e9b8485-72ff-4916-9197-59da819c03db';   // Radio Suno Malayalam 91.7 FM, Kochi (Founder, 27 Oct 2026)
   const DEFAULT_PLACE_NAME = 'Kochi';
   const API_HOSTS = ['de1.api.radio-browser.info', 'de2.api.radio-browser.info', 'fi1.api.radio-browser.info', 'nl1.api.radio-browser.info', 'at1.api.radio-browser.info'];
@@ -198,21 +198,60 @@
       .globeImageUrl(small ? 'img/earth-2k.jpg' : 'img/earth-4k.jpg')
       .bumpImageUrl('img/earth-bump.png')
       .showAtmosphere(true).atmosphereColor('#35C0ED').atmosphereAltitude(0.15)
-      .pointsMerge(true).pointResolution(6).pointAltitude(0.006)
+      .pointsMerge(true).pointResolution(12).pointAltitude(0.0008)
       .pointLat('lat').pointLng('lng').pointColor(() => '#35C0ED')
-      .pointRadius((p) => 0.14 + Math.min(0.42, Math.log10(p.count + 1) * 0.16))
+      .pointRadius((p) => dotRadius(p))
       .pointsData(S.places)
-      .ringLat('lat').ringLng('lng').ringColor(() => (t) => `rgba(255,255,255,${1 - t})`).ringMaxRadius(1.6).ringPropagationSpeed(1.4).ringRepeatPeriod(1100)
+      .ringLat('lat').ringLng('lng').ringColor(() => (t) => `rgba(255,255,255,${1 - t})`).ringPropagationSpeed(1.4).ringRepeatPeriod(1100)
+      .labelLat('lat').labelLng('lng').labelText('name').labelColor(() => 'rgba(255,255,255,0.92)')
+      .labelDotRadius(0).labelAltitude(0.001).labelResolution(2).labelIncludeDot(false)
       .onGlobeClick(({ lat, lng }) => {
         const p = nearestPlace(lat, lng, 6);
-        if (p) selectPlace(p.i, { fly: true });
+        if (p) selectPlace(p.i, { fly: true, auto: true });
       })
-      .onZoom(() => schedulePick());
+      .onZoom(() => { schedulePick(); scheduleScale(); });
     const c = G.controls();
     c.minDistance = 108; c.maxDistance = 560; c.rotateSpeed = 0.55; c.zoomSpeed = 0.9;
-    const size = () => { G.width(el.clientWidth).height(el.clientHeight); };
+    const size = () => { G.width(el.clientWidth).height(el.clientHeight); applyScale(true); };
     new ResizeObserver(size).observe(el);
     size();
+  }
+
+  // v1.3: dots stay a few pixels wide at every zoom (they are drawn in map degrees, so they are rescaled when the
+  // zoom settles), and close up the cities around the ring are named, so each neighbour can be told apart.
+  let scaleAlt = 0, scaleTimer = 0;
+  function degPerPx() {
+    const alt = G ? G.pointOfView().altitude : 2;
+    const h = Math.max(200, $('#globe').clientHeight || 600);
+    return Math.min(alt, 1.2) * 26.7 / (h / 2);
+  }
+  function dotRadius(p) { return (1.6 + 1.6 * Math.log10(p.count + 1)) * degPerPx(); }
+  function scheduleScale() { clearTimeout(scaleTimer); scaleTimer = setTimeout(() => applyScale(false), 260); }
+  function applyScale(force) {
+    if (!G) return;
+    const alt = G.pointOfView().altitude;
+    if (force || !scaleAlt || Math.abs(alt - scaleAlt) / scaleAlt > 0.18) {
+      scaleAlt = alt;
+      G.pointRadius((p) => dotRadius(p));
+      G.ringMaxRadius(18 * degPerPx());
+    }
+    paintLabels(alt);
+  }
+  function paintLabels(alt) {
+    if (!G) return;
+    if (alt > 0.55) { G.labelsData([]); return; }
+    const pov = G.pointOfView(), el = $('#globe'), w = el.clientWidth, h = el.clientHeight;
+    const cand = shownPlaces().filter((p) => angDist(pov.lat, pov.lng, p.lat, p.lng) < alt * 40).map((p) => ({ p, s: G.getScreenCoords(p.lat, p.lng, 0.001) }))
+      .filter(({ s }) => s.x > 0 && s.x < w && s.y > 0 && s.y < h).sort((a, b) => (b.p.i === S.place) - (a.p.i === S.place) || b.p.count - a.p.count);
+    const near = [], boxes = [];   // biggest cities first; a name that would cover one already placed is skipped
+    for (const { p, s } of cand) {
+      const bw = 12 + p.name.length * 9, box = { l: s.x - 4, r: s.x + bw, t: s.y - 11, b: s.y + 11 };
+      if (boxes.some((o) => box.l < o.r && box.r > o.l && box.t < o.b && box.b > o.t)) continue;
+      boxes.push(box); near.push(p);
+      if (near.length >= 18) break;
+    }
+    const k = degPerPx();
+    G.labelSize(() => 11 * k).labelsData(near.map((p) => ({ lat: p.lat, lng: p.lng + 7 * k, name: p.name })));   // name just right of its dot
   }
   function offerLite() {
     const m = $('#globeMsg');
@@ -239,14 +278,19 @@
     const pov = G.pointOfView();
     const cx = el.clientWidth / 2, cy = el.clientHeight / 2;
     let best = null, bd = 30 * 30;
+    const cur = S.places[S.place];   // zooming must not swap to a neighbour: the current city wins while it is inside the ring
+    if (cur && angDist(pov.lat, pov.lng, cur.lat, cur.lng) < 50) {
+      const s = G.getScreenCoords(cur.lat, cur.lng, 0.001);
+      if ((s.x - cx) ** 2 + (s.y - cy) ** 2 < bd) { $('#ring').classList.add('hit'); return; }
+    }
     for (const p of shownPlaces()) {
       if (angDist(pov.lat, pov.lng, p.lat, p.lng) > 50) continue;
-      const s = G.getScreenCoords(p.lat, p.lng, 0.006);
+      const s = G.getScreenCoords(p.lat, p.lng, 0.001);
       const d = (s.x - cx) ** 2 + (s.y - cy) ** 2;
       if (d < bd) { bd = d; best = p; }
     }
     $('#ring').classList.toggle('hit', !!best);
-    if (best && best.i !== S.place) selectPlace(best.i, { fly: false });
+    if (best && best.i !== S.place) selectPlace(best.i, { fly: false, auto: true });
   }
   function flyTo(p, alt) {
     if (!G) return;
@@ -257,7 +301,7 @@
   }
 
   // ---------- places ----------
-  function selectPlace(i, { fly = false, keepHash = false } = {}) {
+  function selectPlace(i, { fly = false, keepHash = false, auto = false } = {}) {
     const p = S.places[i];
     if (!p) return;
     S.place = i;
@@ -267,6 +311,24 @@
     paintPlaceHead();
     if (!keepHash && !(location.hash.startsWith('#s=') && S.current)) setHash('#p=' + p.id);
     if (S.tab === 'explore') renderView();
+    if (auto) scheduleAutoPlay(p);
+  }
+  // v1.3 (Founder, 27 Oct 2026): like Radio Garden, while the radio is on, moving the ring onto another city
+  // switches to that city's top station once the globe settles. A paused radio stays paused.
+  let autoTimer = 0;
+  function scheduleAutoPlay(p) {
+    clearTimeout(autoTimer);
+    const on = S.status === 'live' || S.status === 'buffering' || S.status === 'connecting';
+    if (!on) return;
+    autoTimer = setTimeout(async () => {
+      if (S.places[S.place] !== p) return;
+      if (S.current && S.current.pid === p.i && S.status !== 'error') return;
+      let list;
+      try { list = await placeStations(p); } catch (e) { return; }
+      if (S.places[S.place] !== p || !list.length) return;
+      const pick = list.find((s) => s.nw !== 1 && playsHere(s)) || list.find(playsHere) || list[0];
+      play(pick, list, list.indexOf(pick), p.name);
+    }, 700);
   }
   function paintPlaceHead() {
     const p = S.places[S.place];
