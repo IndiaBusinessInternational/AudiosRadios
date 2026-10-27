@@ -1,11 +1,11 @@
-/* IBI Audios & Radios v1.4 — India Business International.
+/* IBI Audios & Radios v1.5 — India Business International.
  * Live radio on a 3D globe. Stations: Radio Browser (radio-browser.info, open directory, no key), placed on
  * cities nightly by scripts/build_stations.py. Globe: globe.gl. No API key, no server, no tracking.
  * Everything the listener keeps (favourites, history, hidden stations, settings, alarm) stays on the device,
  * with Backup / Restore in Settings. */
 (() => {
   'use strict';
-  const VERSION = 'v1.4';
+  const VERSION = 'v1.5';
   const DEFAULT_STATION = '9e9b8485-72ff-4916-9197-59da819c03db';   // Radio Suno Malayalam 91.7 FM, Kochi (Founder, 27 Oct 2026)
   const DEFAULT_PLACE_NAME = 'Kochi';
   const API_HOSTS = ['de1.api.radio-browser.info', 'de2.api.radio-browser.info', 'fi1.api.radio-browser.info', 'nl1.api.radio-browser.info', 'at1.api.radio-browser.info'];
@@ -211,7 +211,8 @@
       })
       .onZoom(() => { schedulePick(); scheduleScale(); });
     const c = G.controls();
-    c.minDistance = 108; c.maxDistance = 560; c.rotateSpeed = 0.55; c.zoomSpeed = 0.9;
+    // 100 = the globe surface, so 100.4 lets the zoom reach town level
+    c.minDistance = 100.4; c.maxDistance = 560; c.rotateSpeed = 0.55; c.zoomSpeed = 0.9;
     const size = () => { G.width(el.clientWidth).height(el.clientHeight); applyScale(true); };
     new ResizeObserver(size).observe(el);
     size();
@@ -227,9 +228,35 @@
   }
   function dotRadius(p) { return (1.6 + 1.6 * Math.log10(p.count + 1)) * degPerPx(); }
   function scheduleScale() { clearTimeout(scaleTimer); scaleTimer = setTimeout(() => applyScale(false), 260); }
+  // v1.5 (Founder: "map should be 100 % clear and neat"): one 4K picture of the whole Earth is ~10 km a pixel, so close
+  // up it blurs. Zoomed in, the globe switches to map tiles that load only for the area on screen: NASA Blue Marble
+  // satellite (public domain) down to region level, then OpenStreetMap (sharp at every zoom, with roads and names).
+  // Both are free and keyless; their credit shows on the map while they are on.
+  // The tile engine picks level ceil(log2(8 / altitude)), which is about two levels too coarse for a phone, so every
+  // tile is stretched and soft. TILE_K = 4 gives one tile pixel per screen point (as Leaflet and Google Maps do), so map text stays readable.
+  const TILES_BELOW_ALT = 1.3, OSM_FROM_LEVEL = 9, TILE_K = 4;
+  // below OSM_ALT the OpenStreetMap tiles are on screen, with their own place names
+  const OSM_ALT = 8 * TILE_K / 2 ** (OSM_FROM_LEVEL - 1);
+  let tilesOn = false, tileLevel = 0;
+  function tuneTileEngine() {
+    G.scene().traverse((o) => { if (Array.isArray(o.thresholds) && 'tileUrl' in o) o.thresholds = o.thresholds.map((_, i) => 8 * TILE_K / 2 ** i); });
+  }
+  function tileUrl(x, y, l) {
+    tileLevel = Math.max(tileLevel, l);
+    if (l < OSM_FROM_LEVEL) return `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/BlueMarble_NextGeneration/default/GoogleMapsCompatible_Level8/${l}/${y}/${x}.jpeg`;
+    return `https://tile.openstreetmap.org/${l}/${x}/${y}.png`;
+  }
+  function syncTiles(alt) {
+    const want = alt < TILES_BELOW_ALT;
+    if (want !== tilesOn) { tilesOn = want; tileLevel = 0; G.globeTileEngineUrl(want ? tileUrl : null); if (want) tuneTileEngine(); }
+    const credit = $('#mapCredit');
+    credit.hidden = !tilesOn;
+    if (tilesOn) credit.innerHTML = alt < OSM_ALT ? 'Map © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors' : 'Imagery: NASA Blue Marble';
+  }
   function applyScale(force) {
     if (!G) return;
     const alt = G.pointOfView().altitude;
+    syncTiles(alt);
     if (force || !scaleAlt || Math.abs(alt - scaleAlt) / scaleAlt > 0.18) {
       scaleAlt = alt;
       G.pointRadius((p) => dotRadius(p));
@@ -237,9 +264,11 @@
     }
     paintLabels(alt);
   }
+  // the globe's 3D label font has no accented letters ("Nāgercoil" drew as "N?gercoil"): labels drop the accents only
+  const plainName = (n) => n.normalize('NFD').replace(/\p{M}/gu, '');
   function paintLabels(alt) {
     if (!G) return;
-    if (alt > 0.55) { G.labelsData([]); return; }
+    if (alt > 0.55 || alt < OSM_ALT) { G.labelsData([]); return; }
     const pov = G.pointOfView(), el = $('#globe'), w = el.clientWidth, h = el.clientHeight;
     const cand = shownPlaces().filter((p) => angDist(pov.lat, pov.lng, p.lat, p.lng) < alt * 40).map((p) => ({ p, s: G.getScreenCoords(p.lat, p.lng, 0.001) }))
       .filter(({ s }) => s.x > 0 && s.x < w && s.y > 0 && s.y < h).sort((a, b) => (b.p.i === S.place) - (a.p.i === S.place) || b.p.count - a.p.count);
@@ -251,7 +280,7 @@
       if (near.length >= 18) break;
     }
     const k = degPerPx();
-    G.labelSize(() => 11 * k).labelsData(near.map((p) => ({ lat: p.lat, lng: p.lng + 7 * k, name: p.name })));   // name just right of its dot
+    G.labelSize(() => 11 * k).labelsData(near.map((p) => ({ lat: p.lat, lng: p.lng + 7 * k, name: plainName(p.name) })));   // name just right of its dot
   }
   function offerLite() {
     const m = $('#globeMsg');
@@ -549,7 +578,7 @@
       + `<div class="about"><img src="img/logo-${theme === 'dark' ? 'dark' : 'light'}.png" alt="India Business International"><b style="color:var(--text)">IBI Audios &amp; Radios ${VERSION}</b><br>
         ${(m.stations || 0).toLocaleString('en-IN')} stations in ${(m.places || 0).toLocaleString('en-IN')} places, ${S.countries.length} countries.<br>
         Station map updated ${m.built ? fmtDate(m.built) : '—'} (refreshed every night).<br><br>
-        Stations: <a href="https://www.radio-browser.info/" target="_blank" rel="noopener">Radio Browser</a>, a free community directory. City list: <a href="https://www.geonames.org/" target="_blank" rel="noopener">GeoNames</a> (CC BY 4.0). Earth image: NASA Blue Marble.<br><br>
+        Stations: <a href="https://www.radio-browser.info/" target="_blank" rel="noopener">Radio Browser</a>, a free community directory. City list: <a href="https://www.geonames.org/" target="_blank" rel="noopener">GeoNames</a> (CC BY 4.0). Earth image and satellite tiles: NASA Blue Marble (NASA EOSDIS GIBS). Close-up map: © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors.<br><br>
         Each station and its audio belong to its broadcaster. This app only links to streams that the broadcasters make public; it does not host, record or rebroadcast any audio. To report a station, contact India Business International at indiabusinessinternational@gmail.com.<br><br>
         © India Business International. Favourites, history and settings stay on this device; nothing is sent to us.</div>`);
   }
@@ -1212,7 +1241,7 @@
   $('#miniVol').addEventListener('input', (e) => setVol(+e.target.value));
   $('#fabRandom').addEventListener('click', surprise);
   $('#fabLocate').addEventListener('click', locate);
-  $('#fabIn').addEventListener('click', () => { if (G) G.pointOfView({ altitude: Math.max(0.12, G.pointOfView().altitude * 0.6) }, 400); });
+  $('#fabIn').addEventListener('click', () => { if (G) G.pointOfView({ altitude: Math.max(0.005, G.pointOfView().altitude * 0.6) }, 400); });
   $('#fabOut').addEventListener('click', () => { if (G) G.pointOfView({ altitude: Math.min(4.2, G.pointOfView().altitude / 0.6) }, 400); });
   (() => { // drag the grab handle: up opens the list, down closes it; a tap toggles
     let y0 = null;

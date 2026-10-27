@@ -29,7 +29,7 @@
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="icon" href="icons/favicon-64.png" sizes="64x64">
 <script>try{var t=localStorage.getItem("iar:theme");if(t)document.documentElement.setAttribute("data-theme",t);if(localStorage.getItem("iar:lite")==="1")document.documentElement.className="lite-boot";}catch(e){}</script>
-<link rel="stylesheet" href="app.css?v=1.4">
+<link rel="stylesheet" href="app.css?v=1.5">
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="preconnect" href="https://de1.api.radio-browser.info" crossorigin>
 </head>
@@ -68,7 +68,7 @@
 
 <div id="app">
   <header class="topbar" id="topbar">
-    <span class="badge" id="versionBadge" title="App version">v1.4</span>
+    <span class="badge" id="versionBadge" title="App version">v1.5</span>
     <div class="brand"><svg aria-hidden="true"><use href="#i-mark"/></svg><b>IBI Audios &amp; Radios</b></div>
     <button type="button" class="top-share" id="shareTop" aria-label="Share this app" title="Share this app"><svg class="i" aria-hidden="true"><use href="#i-share"/></svg></button>
     <button type="button" class="top-btn" id="installTop" hidden>Install</button>
@@ -79,6 +79,7 @@
     <div id="globe"></div>
     <div class="ring" id="ring" aria-hidden="true"></div>
     <div id="globeMsg" role="status"><div class="spin"></div><div id="globeMsgText">Loading the world's radio…</div></div>
+    <div class="mapcredit" id="mapCredit" hidden></div>
     <div class="filterchip" id="filterChip" hidden><span id="filterChipText"></span><button type="button" id="filterClear" aria-label="Clear filter"><svg class="i"><use href="#i-x"/></svg></button></div>
     <div class="fabs">
       <button type="button" class="fab" id="fabRandom" title="Surprise me: a random station (R)" aria-label="Surprise me"><svg class="i"><use href="#i-shuffle"/></svg></button>
@@ -127,6 +128,6 @@
 <input type="file" id="restoreFile" accept="application/json,.json" hidden>
 <audio id="audio" preload="none"></audio>
 <script src="https://cdn.jsdelivr.net/npm/globe.gl@2.46.2/dist/globe.gl.min.js" defer></script>
-<script src="app.js?v=1.4" defer></script>
+<script src="app.js?v=1.5" defer></script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-/* IBI Audios & Radios v1.4 — edge to edge on every screen (no outer gutter, 10px inner padding).
+/* IBI Audios & Radios v1.5 — edge to edge on every screen (no outer gutter, 10px inner padding).
    Phones (< 1000px): full-screen globe with a bottom sheet. Wide screens: two columns, panel | globe. */
 :root {
   --bg: #04070c; --sky1: #0b1830; --sky2: #02040a;
@@ -73,6 +73,9 @@ svg.i.fill { fill: currentColor; stroke: none; }
   box-shadow: 0 2px 8px rgba(0,0,0,.4); backdrop-filter: blur(6px); }
 .fab:hover { background: rgba(20, 30, 44, .9); }
 .fab.on { background: var(--accent); color: var(--on-accent); }
+.mapcredit { position: absolute; left: 50%; bottom: 0; transform: translateX(-50%); z-index: 3; font-size: 12px; line-height: 1.3; padding: 2px 8px;
+  background: rgba(0, 0, 0, .55); color: #e6edf3; white-space: nowrap; max-width: calc(100% - 120px); overflow: hidden; text-overflow: ellipsis; }
+.mapcredit a { color: #9fdcf5; }
 .filterchip { position: absolute; left: 8px; bottom: 10px; z-index: 4; display: flex; align-items: center; gap: 6px; height: 36px; padding: 0 6px 0 12px;
   border-radius: 18px; background: var(--accent); color: var(--on-accent); font-weight: 700; font-size: 14px; max-width: calc(100% - 70px); }
 .filterchip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
