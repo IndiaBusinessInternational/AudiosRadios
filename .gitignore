@@ -1,0 +1,5 @@
+_build_cache/
+data/
+_site/
+__pycache__/
+.claude/
